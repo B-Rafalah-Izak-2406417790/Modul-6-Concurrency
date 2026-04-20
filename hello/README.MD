@@ -17,3 +17,12 @@ Pada tahap ini, saya telah memodifikasi fungsi `handle_connection` agar server t
 Berikut adalah *screenshot* hasil halaman web yang berhasil dirender di browser:
 
 ![Commit 2 screen capture](/assets/images/commit2.png)
+
+### Commit 3 Reflection Notes
+
+Pada milestone ini, saya menambahkan logika validasi request dan memisahkan respons berdasarkan rute URL. Berikut adalah hal yang saya pelajari, terutama terkait proses *refactoring*:
+* Validasi Rute (Routing Dasar): Saya belajar mengambil baris pertama dari request HTTP (`request_line`) untuk mengecek apakah pengguna meminta rute utama (`GET / HTTP/1.1`). Jika benar, server merespons dengan status `200 OK` dan `hello.html`. Jika berbeda, server mengembalikan status `404 NOT FOUND` dan halaman `404.html`.
+* Pentingnya Refactoring: Pada awalnya, jika kita menggunakan blok `if-else` mentah, kode untuk membaca file (`fs::read_to_string`) dan mengirim respons (`stream.write_all`) akan ditulis dua kali (satu di blok `if`, satu di blok `else`). Hal ini melanggar prinsip DRY (Don't Repeat Yourself).
+* Eksekusi Refactoring: Saya melakukan refactoring dengan membuat variabel tuple `let (status_line, filename)` yang nilainya bergantung pada hasil evaluasi `if-else`. Dengan cara ini, kode pembacaan file dan pengiriman format HTTP cukup ditulis satu kali di bagian akhir fungsi. Ini membuat kode jauh lebih bersih, ringkas, dan mudah di-*maintain* jika nantinya ada tambahan file HTML baru.
+
+![Commit 3 screen capture](/assets/images/commit3.png)
