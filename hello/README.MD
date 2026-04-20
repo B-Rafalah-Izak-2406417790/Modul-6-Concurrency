@@ -26,3 +26,10 @@ Pada milestone ini, saya menambahkan logika validasi request dan memisahkan resp
 * Eksekusi Refactoring: Saya melakukan refactoring dengan membuat variabel tuple `let (status_line, filename)` yang nilainya bergantung pada hasil evaluasi `if-else`. Dengan cara ini, kode pembacaan file dan pengiriman format HTTP cukup ditulis satu kali di bagian akhir fungsi. Ini membuat kode jauh lebih bersih, ringkas, dan mudah di-*maintain* jika nantinya ada tambahan file HTML baru.
 
 ![Commit 3 screen capture](/assets/images/commit3.png)
+
+### Commit 4 Reflection Notes
+
+Pada milestone ini, saya mensimulasikan slow response untuk memahami kelemahan server single-threaded.
+* Simulasi Bottleneck: Saya menambahkan endpoint baru `/sleep` yang menggunakan `thread::sleep(Duration::from_secs(10))` untuk menunda eksekusi selama 10 detik.
+* Analisis Masalah: Saat saya membuka `/sleep` di satu tab browser dan mencoba mengakses `/` di tab lain secara bersamaan, tab kedua tidak langsung merespons. Tab kedua ikut tertunda (blocked) hingga tab pertama selesai diproses (10 detik berlalu).
+* Kesimpulan: Server single-threaded memproses request secara sekuensial (satu per satu). Jika ada satu request yang memakan waktu lama (misal: proses kalkulasi berat atau query database yang lambat), maka request dari pengguna lain harus mengantri di belakangnya sehingga performa server terasa sangat lambat bagi semua pengguna.
