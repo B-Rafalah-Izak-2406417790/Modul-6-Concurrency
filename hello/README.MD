@@ -23,7 +23,7 @@ Berikut adalah *screenshot* hasil halaman web yang berhasil dirender di browser:
 Pada milestone ini, saya menambahkan logika validasi request dan memisahkan respons berdasarkan rute URL. Berikut adalah hal yang saya pelajari, terutama terkait proses *refactoring*:
 * Validasi Rute (Routing Dasar): Saya belajar mengambil baris pertama dari request HTTP (`request_line`) untuk mengecek apakah pengguna meminta rute utama (`GET / HTTP/1.1`). Jika benar, server merespons dengan status `200 OK` dan `hello.html`. Jika berbeda, server mengembalikan status `404 NOT FOUND` dan halaman `404.html`.
 * Pentingnya Refactoring: Pada awalnya, jika kita menggunakan blok `if-else` mentah, kode untuk membaca file (`fs::read_to_string`) dan mengirim respons (`stream.write_all`) akan ditulis dua kali (satu di blok `if`, satu di blok `else`). Hal ini melanggar prinsip DRY (Don't Repeat Yourself).
-* Eksekusi Refactoring: Saya melakukan refactoring dengan membuat variabel tuple `let (status_line, filename)` yang nilainya bergantung pada hasil evaluasi `if-else`. Dengan cara ini, kode pembacaan file dan pengiriman format HTTP cukup ditulis satu kali di bagian akhir fungsi. Ini membuat kode jauh lebih bersih, ringkas, dan mudah di-*maintain* jika nantinya ada tambahan file HTML baru.
+* Eksekusi Refactoring: Saya melakukan refactoring dengan membuat variabel tuple `let (status_line, filename)` yang nilainya bergantung pada hasil evaluasi `if-else`. Dengan cara ini, kode pembacaan file dan pengiriman format HTTP cukup ditulis satu kali di bagian akhir fungsi. Ini membuat kode jauh lebih bersih, ringkas, dan mudah di-maintain jika nantinya ada tambahan file HTML baru.
 
 ![Commit 3 screen capture](/assets/images/commit3.png)
 
@@ -33,3 +33,11 @@ Pada milestone ini, saya mensimulasikan slow response untuk memahami kelemahan s
 * Simulasi Bottleneck: Saya menambahkan endpoint baru `/sleep` yang menggunakan `thread::sleep(Duration::from_secs(10))` untuk menunda eksekusi selama 10 detik.
 * Analisis Masalah: Saat saya membuka `/sleep` di satu tab browser dan mencoba mengakses `/` di tab lain secara bersamaan, tab kedua tidak langsung merespons. Tab kedua ikut tertunda (blocked) hingga tab pertama selesai diproses (10 detik berlalu).
 * Kesimpulan: Server single-threaded memproses request secara sekuensial (satu per satu). Jika ada satu request yang memakan waktu lama (misal: proses kalkulasi berat atau query database yang lambat), maka request dari pengguna lain harus mengantri di belakangnya sehingga performa server terasa sangat lambat bagi semua pengguna.
+
+### Commit 5 Reflection Notes
+
+Pada milestone terakhir ini, saya mengimplementasikan ThreadPool untuk membuat server sanggup menangani banyak koneksi secara bersamaan (multithreading):
+* Konsep ThreadPool: Bukannya membuat thread baru (yang memakan overhead performa) untuk setiap request yang masuk (yang jumlahnya bisa ribuan), saya membuat pool berisi sejumlah thread (worker) yang sudah disiapkan di awal (dalam kasus ini 4 worker).
+* Mekanisme Channel (MPSC)**: ThreadPool menggunakan channel komunikasi (MPSC atau Multiple Producer, Single Consumer). `main` bertindak sebagai producer yang mengirimkan request yang masuk ke dalam channel. Para worker bertindak sebagai consumer yang mengantri menerima pekerjaan dari channel tersebut.
+* Arc dan Mutex: Karena banyak worker yang berebut mengambil pekerjaan dari satu receiver channel yang sama, saya membutuhkan mekanisme sinkronisasi agar tidak terjadi race condition atau memori rusak. Oleh karena itu, receiver dibungkus dengan `Mutex` (agar hanya satu worker yang bisa mengambil satu pekerjaan pada satu waktu) dan `Arc` (agar receiver bisa dimiliki/di-share dengan aman oleh banyak thread).
+* Hasil Akhir: Setelah ini diterapkan, masalah bottleneck dari slow request teratasi. Pengunjung yang mengakses rute `/` tidak lagi terblokir oleh pengunjung lain yang sedang memicu delay di rute `/sleep`.
